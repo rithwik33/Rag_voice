@@ -1,26 +1,57 @@
+
 from groq import Groq
 
 
 def chatbot(prompt, groq_api_key):
 
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY is missing")
+
     client = Groq(api_key=groq_api_key)
 
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful, knowledgeable and intelligent assistant."
-        },
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    try:
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=messages,
-        temperature=0.2,
-        max_completion_tokens=200
-    )
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
 
-    return response.choices[0].message.content
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+
+            temperature=0.3,
+            max_tokens=2000
+        )
+
+        # Debug information
+        print("GROQ RESPONSE:", completion)
+
+        if not completion.choices:
+            raise ValueError("Groq returned no choices")
+
+        choice = completion.choices[0]
+
+        print("FINISH REASON:", choice.finish_reason)
+        print("MESSAGE:", choice.message)
+
+        answer = choice.message.content
+
+        if answer is None:
+            raise ValueError(
+                f"Groq returned None. Finish reason: {choice.finish_reason}"
+            )
+
+        answer = answer.strip()
+
+        if not answer:
+            raise ValueError(
+                "Groq returned empty text. Check the response and finish reason."
+            )
+
+        return answer
+
+    except Exception as e:
+        print("GROQ ERROR:", repr(e))
+        raise
